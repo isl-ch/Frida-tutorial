@@ -1,38 +1,42 @@
 CC=gcc
-CFLAGS=-O0 -fno-stack-protector -no-pie
+CFLAGS=-O0 -fno-stack-protector -no-pie -rdynamic
+SRC=challenges_source
+OUT=challenges
 
 all: easy medium hard
 
-easy: 01_easy_return 02_easy_args 03_easy_call
-medium: 04_medium_rpg 05_medium_struct 06_medium_memscan
-hard: 07_hard_antidebug 08_hard_integrity 09_hard_stalker
+easy: $(OUT)/01_easy_return $(OUT)/02_easy_args $(OUT)/03_easy_call
+medium: $(OUT)/04_medium_rpg $(OUT)/05_medium_struct $(OUT)/06_medium_memscan
+hard: $(OUT)/07_hard_antidebug $(OUT)/08_hard_integrity $(OUT)/09_hard_stalker
 
-01_easy_return: 01_easy_return.c
+$(OUT)/01_easy_return: $(SRC)/01_easy_return.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-02_easy_args: 02_easy_args.c
+$(OUT)/02_easy_args: $(SRC)/02_easy_args.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-03_easy_call: 03_easy_call.c
+$(OUT)/03_easy_call: $(SRC)/03_easy_call.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-04_medium_rpg: 04_medium_rpg.c
+$(OUT)/04_medium_rpg: $(SRC)/04_medium_rpg.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-05_medium_struct: 05_medium_struct.c
+$(OUT)/05_medium_struct: $(SRC)/05_medium_struct.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-06_medium_memscan: 06_medium_memscan.c
+$(OUT)/06_medium_memscan: $(SRC)/06_medium_memscan.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-07_hard_antidebug: 07_hard_antidebug.c
+$(OUT)/07_hard_antidebug: $(SRC)/07_hard_antidebug.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-08_hard_integrity: 08_hard_integrity.c
+$(OUT)/08_hard_integrity: $(SRC)/08_hard_integrity.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-09_hard_stalker: 09_hard_stalker.c
+$(OUT)/09_hard_stalker: $(SRC)/09_hard_stalker.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f 01_easy_return 02_easy_args 03_easy_call 04_medium_rpg 05_medium_struct 06_medium_memscan 07_hard_antidebug 08_hard_integrity 09_hard_stalker
+	rm -f $(OUT)/01_easy_return $(OUT)/02_easy_args $(OUT)/03_easy_call \
+	       $(OUT)/04_medium_rpg $(OUT)/05_medium_struct $(OUT)/06_medium_memscan \
+	       $(OUT)/07_hard_antidebug $(OUT)/08_hard_integrity $(OUT)/09_hard_stalker

@@ -11,7 +11,8 @@ Frida is a dynamic instrumentation toolkit for developers, reverse engineers, an
 2. **Writing a Script**: You write your logic in a `.js` file.
 3. **Attaching**: 
    - By Process ID (PID) of an already running program: `frida -p 1234 -l script.js`
-   - By spawning a binary (useful for catching startup logic): `frida -f ./my_binary -l script.js --no-pause`
+   - By spawning a binary (useful for catching startup logic): `frida -f ./my_binary -l script.js`
+   - Note: Modern Frida auto-resumes the spawned process. Use `--pause` if you need to stop at entry point.
 
 ### The Frida Javascript API
 Frida exposes a massive JavaScript API. The most important objects we'll use are:
@@ -29,15 +30,23 @@ The bread and butter of Frida is hooking functions. This means intercepting exec
 ### Finding the Function
 If the binary is not stripped, you can find a function by its name. If it's stripped, you need its address (offset from base).
 ```javascript
-// Get address by name (e.g., a standard libc function)
+// 1. Find a LIBRARY function by its exported name (e.g., libc's strcmp)
+//    getExportByName only works for functions in the ELF *export table*
 var strcmpPtr = Module.getExportByName(null, "strcmp");
 
-// Or find a function in your specific binary by name
-var myFuncPtr = Module.getExportByName(null, "my_custom_function");
+// 2. Find an INTERNAL function by its debug symbol name
+//    This works as long as the binary is NOT stripped.
+//    Use this for functions like check_pin(), win(), etc.
+var myFuncPtr = DebugSymbol.fromName("my_custom_function").address;
 
-// If stripped, calculate address using base + offset (found via Ghidra/objdump)
+// 3. If stripped, calculate address using base + offset (found via Ghidra/objdump)
 var baseAddr = Module.getBaseAddress("my_binary");
-var strippedFuncPtr = baseAddr.add(0x114A); 
+var strippedFuncPtr = baseAddr.add(0x114A);
+
+// IMPORTANT: Use findExportByName (returns null) over getExportByName (throws)
+//            when you are not sure if a symbol is exported.
+var safePtr = Module.findExportByName(null, "some_func");
+if (safePtr === null) { console.log("Not found in exports!"); }
 ```
 
 ### Hooking with `Interceptor.attach`
@@ -77,7 +86,8 @@ Sometimes you don't want to hook a function, but rather call a hidden function y
 Assume a function `void print_secret(int key)` exists at a known address.
 
 ```javascript
-var funcPtr = Module.getExportByName(null, "print_secret");
+// print_secret is an internal function, NOT an export, so use DebugSymbol
+var funcPtr = DebugSymbol.fromName("print_secret").address;
 
 // Define the signature: NativeFunction(address, returnType, [argTypes...])
 var printSecret = new NativeFunction(funcPtr, 'void', ['int']);
@@ -151,7 +161,7 @@ Interceptor.attach(ptracePtr, {
     }
 });
 ```
-*(Remember to use `frida -f ./binary --no-pause` to catch early startup checks!)*
+*(Remember to use `frida -f ./binary` to spawn and catch early startup checks. Modern Frida auto-resumes by default.)*
 
 ### Evading Hook Detection
 If a program checks its own code for modifications (looking for `JMP` or `INT3` instructions that Frida inserts), you can either:

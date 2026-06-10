@@ -112,3 +112,61 @@ Interceptor.attach(baseAddr.add(instruction_offset), {
     }
 });
 ```
+
+## Advanced 1 (Java): `solve_10.js`
+```javascript
+Java.perform(function() {
+    var LicenseManager = Java.use("LicenseManager");
+    LicenseManager.isValid.implementation = function(key) {
+        console.log("[*] Intercepted key check: " + key);
+        return true;
+    };
+});
+```
+
+## Advanced 2 (Node.js): `solve_11.js`
+```javascript
+// Run with: frida -p <PID> -l solve_11.js
+// Node.js does string comparisons natively. We can hook memcmp to bypass the check.
+Interceptor.attach(Module.getExportByName(null, "memcmp"), {
+    onEnter: function(args) {
+        try {
+            var str = args[0].readUtf8String(24);
+            if (str && str.indexOf("node_js_super_secret") !== -1) {
+                console.log("[+] Intercepted memcmp with secret!");
+                this.found = true;
+            }
+        } catch(e) {}
+    },
+    onLeave: function(retval) {
+        if (this.found) {
+            retval.replace(0); // 0 means memory matches
+        }
+    }
+});
+```
+
+## Advanced 3 (Android Root Detect): `solve_12.js`
+```javascript
+Java.perform(function() {
+    // 1. Bypass File.exists() for su binaries
+    var File = Java.use("java.io.File");
+    File.exists.implementation = function() {
+        var path = this.getAbsolutePath();
+        if (path.indexOf("su") !== -1 || path.indexOf("Superuser") !== -1) {
+            console.log("[*] Bypassing root check for: " + path);
+            return false;
+        }
+        return this.exists(); 
+    };
+
+    // 2. Bypass android.os.Build.TAGS
+    var Build = Java.use("android.os.Build");
+    try {
+        var tagsField = Build.class.getDeclaredField("TAGS");
+        tagsField.setAccessible(true);
+        tagsField.set(null, "release-keys");
+        console.log("[*] Spoofed Build.TAGS to release-keys");
+    } catch(e) {}
+});
+```
